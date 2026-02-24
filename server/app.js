@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import connectDb from "./utils/db.config.js";
 import cors from "cors";
 import organizerRoutes from "./routes/orgnizer.route.js";
+import eventRoutes from "./routes/event.route.js";
 
 //dotenv configuration
 dotenv.config();

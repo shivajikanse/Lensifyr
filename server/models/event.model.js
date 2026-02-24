@@ -18,7 +18,6 @@ const eventSchema = new mongoose.Schema(
     },
     eventCode: {
       type: String,
-      required: true,
       unique: true,
     },
 
@@ -35,11 +34,10 @@ const eventSchema = new mongoose.Schema(
 );
 
 //genearte unique event code before saving
-eventSchema.pre("save", function (next) {
+eventSchema.pre("save", async function () {
   if (!this.eventCode) {
     this.eventCode = crypto.randomBytes(4).toString("hex").toUpperCase();
   }
-  next();
 });
 
 export default mongoose.model("EventModel", eventSchema);
