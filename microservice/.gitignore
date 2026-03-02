@@ -1,0 +1,58 @@
+# Python Virtual Environment
+venv/
+env/
+.venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# InsightFace Model Cache (large files)
+*.onnx
+*.pb
+models/
+model_cache/
+~/.insightface/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Distribution
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Temp Files
+*.tmp
+temp/
+tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
