@@ -1,4 +1,3 @@
-import { response } from "express";
 import eventModel from "../models/event.model.js";
 
 //create event service
@@ -15,15 +14,14 @@ export const createEventService = async ({ organizer, title, eventDate }) => {
   return event;
 };
 
-// //verify event code service
-// export const verifyEventCodeService = async (eventCode) => {
-//   if (!eventCode) {
-//     throw new Error("Event code is required");
-//   }
-//   const event = await eventModel.findOne({ eventCode, isActive: true });
-//   if (!event) {
-//     throw new Error("Invalid or inactive event code");
-//   }
-//   response.status(200).json({ message: "Event code is valid", event });
-//   return event;
-// };
+// verify event code service
+export const verifyEventCodeService = async (eventCode) => {
+  if (!eventCode) {
+    throw new Error("Event code is required");
+  }
+  const event = await eventModel.findOne({ eventCode, isActive: true });
+  if (!event) {
+    throw new Error("Invalid or inactive event code");
+  }
+  return event;
+};

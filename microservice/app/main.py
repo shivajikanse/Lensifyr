@@ -125,6 +125,13 @@ async def generate_embedding(request: EmbeddingRequest):
         )
 
     try:
+        # Log request details
+        logger.info(f"Received request - has_base64: {bool(request.image_base64)}, has_url: {bool(request.image_url)}")
+        if request.image_base64:
+            logger.info(f"Base64 image size: {len(request.image_base64)} characters")
+        if request.image_url:
+            logger.info(f"Image URL: {request.image_url}")
+
         # Validate request
         if not request.image_base64 and not request.image_url:
             raise ValueError("Either image_base64 or image_url must be provided")

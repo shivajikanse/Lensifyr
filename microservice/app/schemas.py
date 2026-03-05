@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Optional
 
 class EmbeddingRequest(BaseModel):
@@ -15,14 +15,14 @@ class EmbeddingRequest(BaseModel):
             }
         }
 
-    def model_validate_values(self):
+    @model_validator(mode='after')
+    def validate_at_least_one(self):
         """Ensure at least one of image_base64 or image_url is provided"""
         if not self.image_base64 and not self.image_url:
-            raise ValueError(
-                "Either image_base64 or image_url must be provided"
-            )
+            raise ValueError("Either image_base64 or image_url must be provided")
         if self.image_base64 and self.image_url:
             raise ValueError("Please provide only one of image_base64 or image_url")
+        return self
 
 
 class EmbeddingResponse(BaseModel):

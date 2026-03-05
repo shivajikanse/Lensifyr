@@ -24,6 +24,17 @@ import eventModel from "../models/event.model.js";
 import path from "path";
 import os from "os";
 
+//get a single file object
+const normalizeUploadedFile = (file) => {
+  if (Array.isArray(file)) {
+    return file[0];
+  }
+  if (file && typeof file === "object" && "0" in file) {
+    return file[0];
+  }
+  return file;
+};
+
 /**
  * Upload image to event (Organizer)
  * POST /api/image/upload
@@ -35,9 +46,16 @@ export const uploadEventImage = async (req, res) => {
   }
 
   const { eventId } = req.body;
-  const file = req.files?.image;
+  const file = normalizeUploadedFile(req.files?.image);
 
   try {
+    // Debug: Check if file exists
+    if (!file) {
+      console.error("No file provided in request.files.image");
+      return res.status(400).json({ message: "No file provided" });
+    }
+
+    console.log("File object exists. Logging details...");
     // Verify event belongs to organizer
     const event = await eventModel.findOne({
       _id: eventId,
@@ -51,21 +69,35 @@ export const uploadEventImage = async (req, res) => {
       });
     }
 
+    // Debug: log file details
+    console.log("File upload details:", {
+      name: file.name,
+      originalname: file.originalname,
+      filename: file.filename,
+      mimetype: file.mimetype,
+      size: file.size,
+      encoding: file.encoding,
+      keys: Object.keys(file).filter((k) => k !== "data"), // Log all properties except data
+    });
+
     // Validate file
     const validation = validateImageFile(file);
     if (!validation.isValid) {
+      console.error("File validation failed:", validation.error);
       return res.status(400).json({ message: validation.error });
     }
 
-    // Upload to Cloudinary
+    // Generate base64 for embeddings (using original buffer for accuracy)
+    const base64Image = `data:${file.mimetype};base64,${file.data.toString("base64")}`;
+
+    // Upload to Cloudinary with base64 data
     const cloudinaryResult = await uploadImageToCloudinary(
-      file.data,
+      base64Image,
       `event_${eventId}_${Date.now()}`,
       `lensifyr/events/${eventId}`,
     );
 
-    // Generate embeddings from image
-    const base64Image = file.data.toString("base64");
+    // Generate embeddings using base64 (direct approach to avoid network issues)
     const embeddingResult = await generateEmbeddingsFromBase64(base64Image);
 
     // Store in MongoDB with embeddings
@@ -93,14 +125,12 @@ export const uploadEventImage = async (req, res) => {
   } catch (error) {
     console.error("Error uploading image:", error);
 
-    // Clean up Cloudinary image if something failed during processing
-    if (error.message.includes("No faces detected")) {
-      if (cloudinaryResult?.publicId) {
-        try {
-          await deleteImageFromCloudinary(cloudinaryResult.publicId);
-        } catch (deleteError) {
-          console.error("Failed to clean up Cloudinary image:", deleteError);
-        }
+    // Clean up Cloudinary image if upload succeeded but later processing failed
+    if (cloudinaryResult?.publicId) {
+      try {
+        await deleteImageFromCloudinary(cloudinaryResult.publicId);
+      } catch (deleteError) {
+        console.error("Failed to clean up Cloudinary image:", deleteError);
       }
     }
 
@@ -122,8 +152,8 @@ export const findMatchedImages = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { eventId, similarity_threshold = 0.6 } = req.body;
-  const file = req.files?.selfie;
+  const { eventId, similarity_threshold = 0.4 } = req.body;
+  const file = normalizeUploadedFile(req.files?.selfie);
 
   let zipFilePath = null;
 
@@ -151,18 +181,48 @@ export const findMatchedImages = async (req, res) => {
       });
     }
 
+    // Debug: log file details
+    console.log("Face search file upload details:", {
+      name: file.name,
+      originalname: file.originalname,
+      filename: file.filename,
+      mimetype: file.mimetype,
+      size: file.size,
+      keys: Object.keys(file).filter((k) => k !== "data"),
+    });
+
     // Validate file
     const validation = validateImageFile(file);
     if (!validation.isValid) {
+      console.error(
+        "File validation failed in searchFaceMatches:",
+        validation.error,
+      );
       return res.status(400).json({ message: validation.error });
     }
 
-    // Generate embeddings from user's selfie
-    const base64Image = file.data.toString("base64");
+    // Generate embeddings from user's selfie using base64
+    // Must include data URL prefix (same format as upload path)
+    const base64Image = `data:${file.mimetype};base64,${file.data.toString("base64")}`;
     const embeddingResult = await generateEmbeddingsFromBase64(base64Image);
+
+    console.log("Selfie embedding result:", {
+      faceCount: embeddingResult.faceCount,
+      embeddingDimensions: embeddingResult.embeddings.map((e) => e.length),
+      firstEmbeddingSample: embeddingResult.embeddings[0]?.slice(0, 5),
+    });
 
     // Get all event images
     const eventImages = await getEventImages(eventId);
+
+    console.log("Event images found:", {
+      count: eventImages.length,
+      firstImageEmbeddingDim: eventImages[0]?.faceEmbeddings?.[0]?.length,
+      firstImageEmbeddingSample: eventImages[0]?.faceEmbeddings?.[0]?.slice(
+        0,
+        5,
+      ),
+    });
 
     if (eventImages.length === 0) {
       return res.status(200).json({
@@ -250,8 +310,8 @@ export const findMatchedImages = async (req, res) => {
  * POST /api/image/preview-matches
  */
 export const previewMatches = async (req, res) => {
-  const { eventId, similarity_threshold = 0.6 } = req.body;
-  const file = req.files?.selfie;
+  const { eventId, similarity_threshold = 0.4 } = req.body;
+  const file = normalizeUploadedFile(req.files?.selfie);
 
   try {
     // Validate event
@@ -264,13 +324,27 @@ export const previewMatches = async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
+    // Debug: log file details
+    console.log("Preview matches file upload details:", {
+      name: file.name,
+      originalname: file.originalname,
+      filename: file.filename,
+      mimetype: file.mimetype,
+      size: file.size,
+      keys: Object.keys(file).filter((k) => k !== "data"),
+    });
+
     // Validate file
     const validation = validateImageFile(file);
     if (!validation.isValid) {
+      console.error(
+        "File validation failed in previewMatches:",
+        validation.error,
+      );
       return res.status(400).json({ message: validation.error });
     }
 
-    // Generate embeddings
+    // Generate embeddings from user's selfie using base64
     const base64Image = file.data.toString("base64");
     const embeddingResult = await generateEmbeddingsFromBase64(base64Image);
 

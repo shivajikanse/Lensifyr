@@ -6,7 +6,7 @@ dotenv.config();
 const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://localhost:8000";
 const PYTHON_EMBEDDING_ENDPOINT = "/api/generate-embedding";
 const PYTHON_HEALTH_ENDPOINT = "/api/health";
-const REQUEST_TIMEOUT = 30000; // 30 seconds
+const REQUEST_TIMEOUT = 60000; // 60 seconds
 
 /**
  * Health check for Python microservice
@@ -85,8 +85,17 @@ export const generateFaceEmbeddings = async (imageInput, isBase64 = true) => {
       message: `Successfully detected ${face_count} face(s)`,
     };
   } catch (error) {
-    // Enhanced error handling
+    // Enhanced error handling with detailed logging
     const errorMessage = error.response?.data?.message || error.message;
+    const errorDetails = error.response?.data || error.response || error;
+
+    console.error("Python API Error Details:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      payload: { isBase64, inputLength: imageInput.length || 0 },
+      message: errorMessage,
+    });
 
     if (error.code === "ECONNREFUSED") {
       throw new Error(

@@ -12,18 +12,38 @@ cloudinary.config({
 
 /**
  * Upload image to Cloudinary
- * @param {string} fileData - Base64 or file path of image
+ * @param {string|Buffer} fileData - Base64 string (with or without prefix), data URI, or Buffer
  * @param {string} fileName - Name of the file
  * @param {string} folder - Folder path in Cloudinary
  * @returns {Promise<{publicId, imageUrl, width, height}>}
  */
 export const uploadImageToCloudinary = async (fileData, fileName, folder) => {
   try {
-    const result = await cloudinary.uploader.upload(fileData, {
+    // If fileData is a Buffer, convert to base64
+    let uploadData = fileData;
+    if (Buffer.isBuffer(fileData)) {
+      uploadData = `data:image/jpeg;base64,${fileData.toString("base64")}`;
+    }
+    // If it's a base64 string without the data prefix, add it
+    else if (
+      typeof fileData === "string" &&
+      !fileData.startsWith("data:") &&
+      !fileData.startsWith("http")
+    ) {
+      uploadData = `data:image/jpeg;base64,${fileData}`;
+    }
+
+    console.log(
+      `Uploading to Cloudinary - fileName: ${fileName}, folder: ${folder}`,
+    );
+
+    const result = await cloudinary.uploader.upload(uploadData, {
       folder: folder || "lensifyr/events",
       resource_type: "auto",
       public_id: fileName.split(".")[0],
     });
+
+    console.log(`Cloudinary upload successful - URL: ${result.secure_url}`);
 
     return {
       publicId: result.public_id,
@@ -33,6 +53,7 @@ export const uploadImageToCloudinary = async (fileData, fileName, folder) => {
       format: result.format,
     };
   } catch (error) {
+    console.error(`Cloudinary upload failed:`, error);
     throw new Error(`Cloudinary upload failed: ${error.message}`);
   }
 };

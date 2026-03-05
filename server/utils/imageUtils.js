@@ -25,24 +25,60 @@ export const validateImageFile = (file, maxSize = 5 * 1024 * 1024) => {
     };
   }
 
-  // Check mime type
+  // Allowed file types
   const allowedMimeTypes = [
     "image/jpeg",
     "image/png",
     "image/webp",
     "image/jpg",
   ];
-  if (file.mimetype && !allowedMimeTypes.includes(file.mimetype)) {
+  const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+
+  // Try to get filename
+  const fileName = file.name || file.originalname || file.filename || "";
+  let fileExtension = "";
+
+  if (fileName) {
+    fileExtension = path.extname(fileName).toLowerCase();
+  }
+
+  // Map extensions to MIME types
+  const extensionToMimeType = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+  };
+
+  // Try to determine file type from either mimetype or extension
+  let fileType = file.mimetype || extensionToMimeType[fileExtension];
+
+  // Log for debugging
+  console.log("validateImageFile - debug info:", {
+    fileName,
+    fileExtension,
+    mimetype: file.mimetype,
+    derivedType: extensionToMimeType[fileExtension],
+    finalFileType: fileType,
+  });
+
+  // Validate file type
+  if (!fileType) {
     return {
       isValid: false,
-      error: `Invalid file type. Allowed types: ${allowedMimeTypes.join(", ")}`,
+      error: `Unable to determine file type. Allowed types: ${allowedExtensions.join(", ")}`,
     };
   }
 
-  // Check file extension
-  const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
-  const fileExtension = path.extname(file.name || file.originalname || "");
-  if (!allowedExtensions.includes(fileExtension.toLowerCase())) {
+  if (!allowedMimeTypes.includes(fileType)) {
+    return {
+      isValid: false,
+      error: `Invalid file type. Allowed types: image/jpeg, image/png, image/webp`,
+    };
+  }
+
+  // Additional extension check if filename is present
+  if (fileExtension && !allowedExtensions.includes(fileExtension)) {
     return {
       isValid: false,
       error: `Invalid file extension. Allowed types: ${allowedExtensions.join(", ")}`,
@@ -91,6 +127,7 @@ export const generateZipFromImages = async (matches, outputPath) => {
 
       // Add images to archive
       const addImagesToArchive = async () => {
+        let addedCount = 0;
         for (let i = 0; i < matches.length; i++) {
           const match = matches[i];
 
@@ -106,10 +143,22 @@ export const generateZipFromImages = async (matches, outputPath) => {
 
             // Add image to archive
             archive.append(imageResponse.data, { name: fileName });
+            addedCount++;
           } catch (error) {
-            console.error(`Failed to download image: ${match.imageUrl}`, error);
+            console.error(
+              `Failed to download image: ${match.imageUrl}`,
+              error.message,
+            );
             // Continue with other images even if one fails
           }
+        }
+
+        if (addedCount === 0) {
+          archive.abort();
+          reject(
+            new Error("No matched images could be downloaded from storage"),
+          );
+          return;
         }
 
         // Finalize the archive

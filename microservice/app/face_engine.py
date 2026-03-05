@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+import tempfile
+import os
 from typing import List, Tuple
 from .utils import normalize_embedding, validate_image, resize_image
 import logging
@@ -53,6 +55,27 @@ class FaceDetectionEngine:
             ValueError: If image is invalid or no faces detected
         """
         try:
+            # Normalize image if a tuple/list is passed (e.g., (image, meta))
+            if isinstance(image, (tuple, list)) and len(image) > 0:
+                image = image[0]
+
+            # Strict type guard before processing
+            if not isinstance(image, np.ndarray):
+                logger.error(f"Invalid image type: {type(image)}")
+                raise ValueError(f"Invalid image type: {type(image)}")
+
+            logger.info(
+                "Input image details",
+            )
+            print('image:',image)
+            logger.debug(
+                "Image shape: %s, dtype: %s",
+                
+                getattr(image, "shape", None),
+                getattr(image, "dtype", None),
+            )
+            
+
             # Validate image
             is_valid, message = validate_image(image)
             if not is_valid:
@@ -61,22 +84,28 @@ class FaceDetectionEngine:
             # Resize image if too large (DeepFace handles this but prevents memory issues)
             image = resize_image(image, max_size=1024)
             
-            # Convert BGR to RGB for DeepFace
-            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
             logger.info("Running DeepFace embedding generation...")
-            
-            # DeepFace.represent() returns list of dicts with embeddings
-            # Each dict contains: embedding (512D), facial_area, age, gender, emotion, race, dominant_race
-            results = DeepFace.represent(
-                img_path=image_rgb,
-                model_name=self.model_name,
-                detector_backend=self.detector_backend,
-                enforce_detection=True,  # Raise error if no face detected
-                align=True,  # Align faces for better embeddings
-                max_attempts=3,  # Retry up to 3 times
-                silent=True  # Suppress console output
-            )
+
+            # Save image temporarily (DeepFace is more stable with file paths)
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                temp_path = tmp.name
+                cv2.imwrite(temp_path, image)
+
+            try:
+                # DeepFace.represent() returns list of dicts with embeddings
+                # Each dict contains: embedding (512D), facial_area, age, gender, emotion, race, dominant_race
+                results = DeepFace.represent(
+                    img_path=temp_path,
+                    model_name=self.model_name,
+                    detector_backend=self.detector_backend,
+                    enforce_detection=True,  # Raise error if no face detected
+                    # align=True,  # Align faces for better embeddings
+                    # max_attempts=3,  # Retry up to 3 times
+                    # silent=True  # Suppress console output
+                )
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
 
             if not results or len(results) == 0:
                 raise ValueError("No faces detected in image")

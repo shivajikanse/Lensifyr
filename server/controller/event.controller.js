@@ -1,7 +1,7 @@
 import { validationResult } from "express-validator";
 import {
   createEventService,
-  // verifyEventCodeService,
+  verifyEventCodeService,
 } from "../service/event.service.js";
 import eventModel from "../models/event.model.js";
 
@@ -28,21 +28,21 @@ export const createEvent = async (req, res) => {
 };
 
 //Verify event code
-// export const verifyEventCode = async (req, res) => {
-//   const error = validationResult(req);
-//   if (!error.isEmpty()) {
-//     return res.status(400).json({ errors: error.array() });
-//   }
-//   const { eventCode } = req.params;
-//   try {
-//     const event = await verifyEventCodeService(eventCode);
-//     res.status(200).json(event);
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ message: "Error verifying event code", error: error.message });
-//   }
-// };
+export const verifyEventCode = async (req, res) => {
+  const error = validationResult(req);
+  if (!error.isEmpty()) {
+    return res.status(400).json({ errors: error.array() });
+  }
+  const { eventCode } = req.params;
+  try {
+    const event = await verifyEventCodeService(eventCode);
+    res.status(200).json(event);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error verifying event code", error: error.message });
+  }
+};
 
 //update event
 export const updateEvent = async (req, res) => {

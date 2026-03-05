@@ -48,9 +48,15 @@ def load_image_from_url(image_url: str):
         numpy array: Image as numpy array (BGR format)
     """
     try:
-        response = requests.get(image_url, timeout=30)
+        # Make request with proper headers and SSL verification
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+        
+        response = requests.get(image_url, timeout=30, headers=headers, stream=True)
         response.raise_for_status()
         
+        # Read content and open image
         image = Image.open(io.BytesIO(response.content))
         image_array = np.array(image)
         
@@ -59,6 +65,12 @@ def load_image_from_url(image_url: str):
             image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
         
         return image_array
+    except requests.exceptions.ConnectionError as e:
+        raise ValueError(f"Failed to connect to image URL: {str(e)}")
+    except requests.exceptions.Timeout as e:
+        raise ValueError(f"Request to image URL timed out: {str(e)}")
+    except requests.exceptions.HTTPError as e:
+        raise ValueError(f"HTTP error loading image: {str(e)}")
     except Exception as e:
         raise ValueError(f"Failed to load image from URL: {str(e)}")
 
@@ -155,6 +167,7 @@ def resize_image(image: np.ndarray, max_size: int = 1024) -> np.ndarray:
     Returns:
         numpy array: Resized image
     """
+    print('image shape:',image.shape)
     height, width = image.shape[:2]
     
     if height <= max_size and width <= max_size:

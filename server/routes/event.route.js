@@ -1,9 +1,9 @@
 import express from "express";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import { organizerAuth } from "../middleware/auth.middleware.js";
 import {
   createEvent,
-  // verifyEventCode,
+  verifyEventCode,
   updateEvent,
   deleteEvent,
 } from "../controller/event.controller.js";
@@ -24,11 +24,11 @@ router.post(
 );
 
 //verify event code
-// router.get(
-//   "/verify/:eventCode",
-//   [body("eventCode").notEmpty().withMessage("Event code is required")],
-//   verifyEventCode,
-// );
+router.get(
+  "/verify/:eventCode",
+  [param("eventCode").notEmpty().withMessage("Event code is required")],
+  verifyEventCode,
+);
 
 //Update and edit event
 router.patch(

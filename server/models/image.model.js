@@ -16,7 +16,7 @@ const imageSchema = new mongoose.Schema(
     },
     imageUrl: {
       type: String,
-      required: true, // Cloudinary URL
+      required: true,
     },
     publicId: {
       type: String,

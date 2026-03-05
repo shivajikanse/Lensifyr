@@ -91,6 +91,10 @@ export const findSimilarImages = (
     imageDoc.faceEmbeddings.forEach((faceEmbedding, faceIndex) => {
       const similarity = cosineSimilarity(userEmbedding, faceEmbedding);
 
+      console.log(
+        `Similarity score for image ${imageDoc._id} face ${faceIndex}: ${similarity.toFixed(6)}`,
+      );
+
       if (similarity >= threshold) {
         matches.push({
           imageId: imageDoc._id,

@@ -14,7 +14,7 @@ const router = express.Router();
 /**
  * POST /api/image/upload
  * Upload image to event (Organizer only)
- * Body: { eventId, image (file) }
+
  */
 router.post(
   "/upload",
