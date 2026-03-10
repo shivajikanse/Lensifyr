@@ -2,8 +2,21 @@ import { validationResult } from "express-validator";
 import {
   createEventService,
   verifyEventCodeService,
+  getOrganizerEventsService,
 } from "../service/event.service.js";
 import eventModel from "../models/event.model.js";
+
+// get organizer events
+export const getOrganizerEvents = async (req, res) => {
+  try {
+    const events = await getOrganizerEventsService(req.organizer._id);
+    res.status(200).json({ events });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching events", error: error.message });
+  }
+};
 
 //create event
 export const createEvent = async (req, res) => {

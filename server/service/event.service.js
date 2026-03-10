@@ -14,6 +14,14 @@ export const createEventService = async ({ organizer, title, eventDate }) => {
   return event;
 };
 
+// get organizer events service
+export const getOrganizerEventsService = async (organizerId) => {
+  const events = await eventModel
+    .find({ organizer: organizerId })
+    .sort({ createdAt: -1 });
+  return events;
+};
+
 // verify event code service
 export const verifyEventCodeService = async (eventCode) => {
   if (!eventCode) {

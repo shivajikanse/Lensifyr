@@ -3,12 +3,16 @@ import { body, param } from "express-validator";
 import { organizerAuth } from "../middleware/auth.middleware.js";
 import {
   createEvent,
+  getOrganizerEvents,
   verifyEventCode,
   updateEvent,
   deleteEvent,
 } from "../controller/event.controller.js";
 
 const router = express.Router();
+
+// get all events for organizer
+router.get("/my-events", organizerAuth, getOrganizerEvents);
 
 router.post(
   "/create",
