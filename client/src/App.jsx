@@ -19,17 +19,17 @@ export default function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
+            // <ProtectedRoute>
+            <DashboardPage />
+            // {/* </ProtectedRoute> */}
           }
         />
         <Route
           path="/event/:eventId"
           element={
-            <ProtectedRoute>
-              <EventDetailPage />
-            </ProtectedRoute>
+            // <ProtectedRoute>
+            <EventDetailPage />
+            // </ProtectedRoute>
           }
         />
       </Route>
