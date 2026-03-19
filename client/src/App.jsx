@@ -4,9 +4,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import DashboardPage from "./pages/DashboardPage";
+// import DashboardPage from "./pages/DashboardPage";
 import EventDetailPage from "./pages/EventDetailPage";
 import FindPhotosPage from "./pages/FindPhotosPage";
+import OrganizerDashboardPage from "./pages/OrganizerDashboardPage";
 
 export default function App() {
   return (
@@ -20,7 +21,7 @@ export default function App() {
           path="/dashboard"
           element={
             // <ProtectedRoute>
-            <DashboardPage />
+            <OrganizerDashboardPage />
             // {/* </ProtectedRoute> */}
           }
         />
