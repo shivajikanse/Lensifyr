@@ -62,9 +62,9 @@ export default function UploadPage() {
             data-testid="upload-event-select"
             value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}
             style={{ ...inputStyle, width: '100%', padding: '12px 16px', fontSize: 14, outline: 'none', boxSizing: 'border-box', appearance: 'none' }}>
-            <option value="" style={{ background: '#1c1917' }}>Choose an event...</option>
+            <option value="">Choose an event...</option>
             {events.map(ev => (
-              <option key={ev._id} value={ev._id} style={{ background: '#1c1917' }}>{ev.title} ({ev.eventCode})</option>
+              <option key={ev._id} value={ev._id}>{ev.title} - {ev.eventCode}</option>
             ))}
           </select>
         </div>
