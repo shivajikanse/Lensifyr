@@ -29,13 +29,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div data-testid="login-page" style={{ minHeight: '100vh', background: t.bg, display: 'flex' }}>
+    <div data-testid="login-page" style={{ height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden' }}>
       {/* Left - Image */}
       <div style={{
-        flex: 1, display: 'flex', position: 'relative', overflow: 'hidden',
+        width: '50%', position: 'relative', overflow: 'hidden',
       }} className="auth-image-panel">
         <img src={images.loginPage} alt="Photography Studio" style={{
-          width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center',
+          position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center',
         }} />
         <AuroraBackground />
         <div style={{
@@ -57,7 +57,7 @@ export default function LoginPage() {
 
       {/* Right - Form */}
       <div style={{
-        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px',
+        width: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px',
       }} className="auth-form-panel">
         <div style={{ width: '100%', maxWidth: 420 }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 36, color: t.text, marginBottom: 8 }}>
@@ -125,7 +125,7 @@ export default function LoginPage() {
       <style>{`
         @media (max-width: 900px) {
           .auth-image-panel { display: none !important; }
-          .auth-form-panel { flex: 1 !important; }
+          .auth-form-panel { width: 100% !important; }
         }
       `}</style>
     </div>

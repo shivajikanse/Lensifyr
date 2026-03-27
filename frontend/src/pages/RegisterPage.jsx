@@ -41,10 +41,10 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div data-testid="register-page" style={{ minHeight: '100vh', background: t.bg, display: 'flex' }}>
+    <div data-testid="register-page" style={{ height: '100vh', background: t.bg, display: 'flex', overflow: 'hidden' }}>
       {/* Left - Image */}
-      <div style={{ flex: 1, display: 'flex', position: 'relative', overflow: 'hidden' }} className="auth-image-panel">
-        <img src={images.registerPage} alt="Photography Studio" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
+      <div style={{ width: '50%', position: 'relative', overflow: 'hidden' }} className="auth-image-panel">
+        <img src={images.registerPage} alt="Photography Studio" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
         <AuroraBackground />
         <div style={{
           position: 'absolute', inset: 0,
@@ -64,7 +64,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right - Form */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', overflowY: 'auto' }} className="auth-form-panel">
+      <div style={{ width: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', overflowY: 'auto' }} className="auth-form-panel">
         <div style={{ width: '100%', maxWidth: 420 }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 36, color: t.text, marginBottom: 8 }}>
             Create Account
@@ -130,7 +130,7 @@ export default function RegisterPage() {
       <style>{`
         @media (max-width: 900px) {
           .auth-image-panel { display: none !important; }
-          .auth-form-panel { flex: 1 !important; }
+          .auth-form-panel { width: 100% !important; }
         }
       `}</style>
     </div>
