@@ -18,6 +18,16 @@
   50% { box-shadow: 0 0 30px rgba(226,201,126,0.3); }
 }
 
+@keyframes aurora-float {
+  0%, 100% { transform: translateX(0px) translateY(0px); }
+  50%      { transform: translateX(30px) translateY(-20px); }
+}
+
+@keyframes aurora-pulse {
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 0.08; }
+}
+
 .shimmer-btn {
   animation: shimmer-slide 3s infinite linear;
 }

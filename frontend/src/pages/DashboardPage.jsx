@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { statsApi, eventApi } from '@/lib/api';
 import t, { images, cardStyle, primaryButtonStyle, outlineButtonStyle, badgeStyle } from '@/lib/theme';
 import { Calendar, Image, Zap, PlusCircle, Upload, Copy, Check, ChevronRight } from 'lucide-react';
+import AuroraBackground from '@/components/AuroraBackground';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -35,7 +36,8 @@ export default function DashboardPage() {
       {/* Banner */}
       <div style={{ borderRadius: 16, overflow: 'hidden', marginBottom: 32, position: 'relative', height: 200 }}>
         <img src={images.dashboardBanner} alt="Studio Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.4) 100%)', display: 'flex', alignItems: 'center', padding: '0 40px' }}>
+        <AuroraBackground />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 40px', zIndex: 10 }}>
           <div>
             <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontWeight: 700, fontSize: 32, color: t.text, marginBottom: 8 }}>
               Welcome back, <span style={{ color: t.gold }}>{user?.name || 'Photographer'}</span>

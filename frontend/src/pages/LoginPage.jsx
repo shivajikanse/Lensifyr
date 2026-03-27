@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatApiError } from '@/lib/api';
 import t, { images, inputStyle, primaryButtonStyle, cardStyle, labelStyle } from '@/lib/theme';
 import { Eye, EyeOff, Camera } from 'lucide-react';
+import AuroraBackground from '@/components/AuroraBackground';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -36,10 +37,11 @@ export default function LoginPage() {
         <img src={images.loginPage} alt="Photography Studio" style={{
           width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center',
         }} />
+        <AuroraBackground />
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(135deg, rgba(10,10,10,0.7) 0%, rgba(10,10,10,0.3) 50%, rgba(10,10,10,0.7) 100%)',
           display: 'flex', alignItems: 'flex-end', padding: 48,
+          zIndex: 10,
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
