@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background: #0a0a0a;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #f5f0e8;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.02);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(226,201,126,0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(226,201,126,0.35);
+}
+
+::selection {
+  background: rgba(226,201,126,0.3);
+  color: #f5f0e8;
+}
+
+input::placeholder, textarea::placeholder {
+  color: rgba(245,240,232,0.3);
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 40 33% 94%;
+    --card: 30 10% 10%;
+    --card-foreground: 40 33% 94%;
+    --popover: 30 10% 10%;
+    --popover-foreground: 40 33% 94%;
+    --primary: 43 65% 69%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 40 33% 94%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 40 33% 45%;
+    --accent: 43 65% 69%;
+    --accent-foreground: 0 0% 4%;
+    --destructive: 0 63% 43%;
+    --destructive-foreground: 40 33% 94%;
+    --border: 43 20% 18%;
+    --input: 43 20% 18%;
+    --ring: 43 65% 69%;
+    --chart-1: 43 65% 69%;
+    --chart-2: 30 40% 50%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 43 30% 40%;
+    --chart-5: 20 50% 55%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+}
+
+@layer base {
+  [data-debug-wrapper="true"] {
+    display: contents !important;
+  }
+  [data-debug-wrapper="true"] > * {
+    margin-left: inherit; margin-right: inherit; margin-top: inherit; margin-bottom: inherit;
+    padding-left: inherit; padding-right: inherit; padding-top: inherit; padding-bottom: inherit;
+    column-gap: inherit; row-gap: inherit; gap: inherit;
+    border-left-width: inherit; border-right-width: inherit; border-top-width: inherit; border-bottom-width: inherit;
+    border-left-style: inherit; border-right-style: inherit; border-top-style: inherit; border-bottom-style: inherit;
+    border-left-color: inherit; border-right-color: inherit; border-top-color: inherit; border-bottom-color: inherit;
+  }
+}
