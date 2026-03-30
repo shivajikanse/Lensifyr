@@ -4,6 +4,11 @@ import jwt from "jsonwebtoken";
 
 const organizerSchema = new mongoose.Schema(
   {
+    organizerId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     name: {
       type: String,
       required: true,

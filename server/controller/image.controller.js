@@ -1,4 +1,5 @@
 import { validationResult } from "express-validator";
+import axios from "axios";
 import {
   uploadImageToCloudinary,
   deleteImageFromCloudinary,
@@ -144,6 +145,7 @@ export const uploadEventImage = async (req, res) => {
 
 /**
  * Upload selfie and get matched images (User)
+ * Calls Python microservice for vectorized cosine similarity computation
  * POST /api/image/find-matches
  */
 export const findMatchedImages = async (req, res) => {
@@ -181,98 +183,143 @@ export const findMatchedImages = async (req, res) => {
       });
     }
 
-    // Debug: log file details
-    console.log("Face search file upload details:", {
-      name: file.name,
-      originalname: file.originalname,
-      filename: file.filename,
-      mimetype: file.mimetype,
-      size: file.size,
-      keys: Object.keys(file).filter((k) => k !== "data"),
-    });
-
     // Validate file
+    if (!file) {
+      return res.status(400).json({ message: "No selfie file provided" });
+    }
+
     const validation = validateImageFile(file);
     if (!validation.isValid) {
-      console.error(
-        "File validation failed in searchFaceMatches:",
-        validation.error,
-      );
       return res.status(400).json({ message: validation.error });
     }
 
-    // Generate embeddings from user's selfie using base64
-    // Must include data URL prefix (same format as upload path)
+    console.log("Step 1: Generating selfie embedding from user's image...");
+
+    // Step 1: Generate embedding from user's selfie
     const base64Image = `data:${file.mimetype};base64,${file.data.toString("base64")}`;
     const embeddingResult = await generateEmbeddingsFromBase64(base64Image);
 
-    console.log("Selfie embedding result:", {
-      faceCount: embeddingResult.faceCount,
-      embeddingDimensions: embeddingResult.embeddings.map((e) => e.length),
-      firstEmbeddingSample: embeddingResult.embeddings[0]?.slice(0, 5),
-    });
-
-    // Get all event images
-    const eventImages = await getEventImages(eventId);
-
-    console.log("Event images found:", {
-      count: eventImages.length,
-      firstImageEmbeddingDim: eventImages[0]?.faceEmbeddings?.[0]?.length,
-      firstImageEmbeddingSample: eventImages[0]?.faceEmbeddings?.[0]?.slice(
-        0,
-        5,
-      ),
-    });
-
-    if (eventImages.length === 0) {
-      return res.status(200).json({
-        message: "No images found in this event",
-        matches: [],
+    if (
+      !embeddingResult.embeddings ||
+      embeddingResult.embeddings.length === 0
+    ) {
+      return res.status(400).json({
+        message: "No faces detected in selfie",
       });
     }
 
-    // Find similar images for each face in the selfie
-    const allMatches = [];
-    for (let i = 0; i < embeddingResult.embeddings.length; i++) {
-      const userEmbedding = embeddingResult.embeddings[i];
-      const matches = findSimilarImages(
-        userEmbedding,
-        eventImages,
-        similarity_threshold,
-      );
-      allMatches.push(...matches);
-    }
-
-    // Remove duplicates (keep highest similarity score for each image)
-    const uniqueMatches = Array.from(
-      allMatches
-        .reduce((map, match) => {
-          const key = `${match.imageId}-${match.faceIndex}`;
-          const existing = map.get(key);
-          if (!existing || match.similarity > existing.similarity) {
-            map.set(key, match);
-          }
-          return map;
-        }, new Map())
-        .values(),
+    const selfieEmbedding = embeddingResult.embeddings[0]; // Use first face
+    console.log(
+      `Selfie embedding generated: ${selfieEmbedding.length}D vector`,
     );
 
-    // Sort by similarity
-    uniqueMatches.sort((a, b) => b.similarity - a.similarity);
+    console.log("Step 2: Fetching all event image embeddings from MongoDB...");
 
-    // If no matches, return early
-    if (uniqueMatches.length === 0) {
+    // Step 2: Fetch all event embeddings from MongoDB (only _id and faceEmbeddings)
+    const eventImages = await ImageModel.find(
+      { event: eventId, isProcessed: true },
+      "faceEmbeddings -_id",
+    ).lean();
+
+    if (eventImages.length === 0) {
       return res.status(200).json({
-        message: "No matching photos found for this event",
+        message: "No processed images found in this event",
         matches: [],
         matchCount: 0,
       });
     }
 
-    // Generate ZIP file
-    zipFilePath = path.join(os.tmpdir(), `matched_photos_${Date.now()}.zip`);
+    // Flatten embeddings with image IDs for Python service
+    const eventEmbeddings = [];
+    eventImages.forEach((imgDoc) => {
+      if (imgDoc.faceEmbeddings && Array.isArray(imgDoc.faceEmbeddings)) {
+        imgDoc.faceEmbeddings.forEach((embedding, idx) => {
+          eventEmbeddings.push({
+            id: `${imgDoc._id}_face_${idx}`,
+            embedding: embedding,
+          });
+        });
+      }
+    });
 
-    await generateZipFromImages(uniqueMatches, zipFilePath);
+    if (eventEmbeddings.length === 0) {
+      return res.status(200).json({
+        message: "No face embeddings found in event images",
+        matches: [],
+        matchCount: 0,
+      });
+    }
+
+    console.log(
+      `Step 3: Calling Python microservice for vectorized similarity (${eventEmbeddings.length} embeddings)...`,
+    );
+
+    // Step 3: Call Python microservice for vectorized cosine similarity
+    const pythonServiceUrl =
+      process.env.PYTHON_SERVICE_URL || "http://localhost:8000";
+    const matchResponse = await axios.post(
+      `${pythonServiceUrl}/api/find-matches`,
+      {
+        selfie_embedding: selfieEmbedding,
+        event_embeddings: eventEmbeddings,
+        threshold: similarity_threshold,
+      },
+      {
+        timeout: 30000,
+      },
+    );
+
+    const matches = matchResponse.data.matches;
+    console.log(
+      `Python service returned ${matches.length} matches in ${matchResponse.data.processing_time}ms`,
+    );
+
+    if (matches.length === 0) {
+      return res.status(200).json({
+        message: "No matching photos found above threshold",
+        matches: [],
+        matchCount: 0,
+      });
+    }
+
+    // Step 4: Fetch full image documents from MongoDB
+    console.log("Step 4: Fetching full image documents for matched images...");
+
+    const imageIds = matches.map((m) => m.id.split("_face_")[0]);
+    const fullImages = await ImageModel.find(
+      { _id: { $in: imageIds } },
+      "imageUrl publicId faceCount createdAt",
+    ).lean();
+
+    // Create map for quick lookup
+    const imageMap = new Map(
+      fullImages.map((img) => [img._id.toString(), img]),
+    );
+
+    // Enrich matches with full image data
+    const enrichedMatches = matches
+      .map((match) => {
+        const imageId = match.id.split("_face_")[0];
+        const imageDoc = imageMap.get(imageId);
+        if (!imageDoc) return null;
+
+        return {
+          imageId: imageId,
+          imageUrl: imageDoc.imageUrl,
+          similarity: match.score,
+          faceCount: imageDoc.faceCount,
+          uploadedAt: imageDoc.createdAt,
+        };
+      })
+      .filter((m) => m !== null);
+
+    console.log(
+      `Step 5: Generating ZIP file with ${enrichedMatches.length} matched images...`,
+    );
+
+    // Step 5: Generate ZIP file
+    zipFilePath = path.join(os.tmpdir(), `matched_photos_${Date.now()}.zip`);
+    await generateZipFromImages(enrichedMatches, zipFilePath);
 
     // Send ZIP file
     return res.download(zipFilePath, "matched_photos.zip", (err) => {
@@ -297,10 +344,28 @@ export const findMatchedImages = async (req, res) => {
       });
     }
 
-    const statusCode = error.message.includes("not available") ? 503 : 500;
+    // Check if error is due to Python service being down
+    let statusCode = 500;
+    let message = error.message;
+
+    if (
+      error.code === "ECONNREFUSED" ||
+      error.code === "ENOTFOUND" ||
+      error.message?.includes("ECONNREFUSED")
+    ) {
+      statusCode = 503;
+      message =
+        "Face matching service is currently unavailable. Please try again later.";
+      console.error("Python microservice is not responding");
+    } else if (error.response?.status === 400) {
+      statusCode = 400;
+      message =
+        error.response.data?.detail || "Invalid request to face service";
+    }
+
     return res.status(statusCode).json({
-      message: error.message,
-      error: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      message,
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };

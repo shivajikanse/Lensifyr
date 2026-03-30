@@ -1,4 +1,5 @@
 import OrganizerModel from "../models/organizer.model.js";
+import { generateOrganizerID } from "../utils/idGenerator.js";
 
 export const creatOrganizer = async ({
   name,
@@ -24,6 +25,7 @@ export const creatOrganizer = async ({
   }
   //crete new organizer
   const organizer = new OrganizerModel({
+    organizerId: generateOrganizerID(),
     name,
     email,
     password: await OrganizerModel.hashPassword(password), // Hash the password before saving

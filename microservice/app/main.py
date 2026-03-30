@@ -9,9 +9,18 @@ from .schemas import (
     HealthCheckResponse,
     ServiceInfoResponse,
     ErrorResponse,
+    FindMatchesRequest,
+    FindMatchesResponse,
 )
 from .face_engine import FaceDetectionEngine
-from .utils import decode_base64_image, load_image_from_url, validate_image
+from .utils import (
+    decode_base64_image,
+    load_image_from_url,
+    validate_image,
+    validate_embedding_vector,
+    validate_event_embeddings,
+    compute_cosine_similarity_vectorized,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -187,6 +196,107 @@ async def generate_embedding(request: EmbeddingRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process image: {str(e)}",
+        )
+
+
+@app.post("/api/find-matches", response_model=FindMatchesResponse)
+async def find_matches(request: FindMatchesRequest):
+    """
+    Find matching faces using vectorized cosine similarity.
+    
+    This endpoint takes a selfie embedding and compares it against all event embeddings
+    using NumPy vectorization for high performance.
+    
+    Args:
+        request: FindMatchesRequest containing:
+            - selfie_embedding: 512D embedding from user's selfie
+            - event_embeddings: List of {id, embedding} for all event images
+            - threshold: Similarity threshold (0-1)
+    
+    Returns:
+        FindMatchesResponse: List of matches with scores, sorted by score descending
+        
+    Raises:
+        HTTPException: If validation fails or processing error occurs
+    """
+    try:
+        start_time = time.time()
+        
+        logger.info(
+            f"Received find-matches request: "
+            f"selfie_emb_dim={len(request.selfie_embedding)}, "
+            f"event_count={len(request.event_embeddings)}, "
+            f"threshold={request.threshold}"
+        )
+        
+        # Validate selfie embedding
+        is_valid, msg = validate_embedding_vector(request.selfie_embedding)
+        if not is_valid:
+            logger.warning(f"Invalid selfie embedding: {msg}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid selfie_embedding: {msg}",
+            )
+        
+        # Validate event embeddings
+        is_valid, msg = validate_event_embeddings(request.event_embeddings)
+        if not is_valid:
+            logger.warning(f"Invalid event embeddings: {msg}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid event_embeddings: {msg}",
+            )
+        
+        # Validate threshold
+        if not (0 <= request.threshold <= 1):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Threshold must be between 0 and 1",
+            )
+        
+        logger.info("Input validation passed, computing similarities...")
+        
+        # Compute vectorized cosine similarity
+        all_matches = compute_cosine_similarity_vectorized(
+            request.selfie_embedding,
+            request.event_embeddings
+        )
+        
+        # Filter by threshold
+        filtered_matches = [m for m in all_matches if m["score"] >= request.threshold]
+        
+        end_time = time.time()
+        processing_time = (end_time - start_time) * 1000  # Convert to milliseconds
+        
+        match_count = len(filtered_matches)
+        logger.info(
+            f"Similarity computation completed: {match_count} matches above threshold "
+            f"(out of {len(all_matches)}) in {processing_time:.2f}ms"
+        )
+        
+        return {
+            "success": True,
+            "matches": filtered_matches,
+            "match_count": match_count,
+            "processing_time": round(processing_time, 2),
+            "message": f"Found {match_count} matching image(s)",
+        }
+    
+    except HTTPException:
+        raise
+    
+    except ValueError as e:
+        logger.warning(f"Validation error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    
+    except Exception as e:
+        logger.error(f"Error computing similarity matches: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute matches: {str(e)}",
         )
 
 

@@ -61,3 +61,53 @@ class ErrorResponse(BaseModel):
     success: bool = Field(False)
     message: str = Field(..., description="Error message")
     error_code: Optional[str] = Field(None, description="Error code")
+
+
+class EventEmbeddingItem(BaseModel):
+    """Individual event embedding item"""
+    id: str = Field(..., description="Image ID from MongoDB")
+    embedding: List[float] = Field(..., description="512D face embedding vector")
+
+
+class FindMatchesRequest(BaseModel):
+    """Request model for finding matching faces"""
+    selfie_embedding: List[float] = Field(
+        ..., description="512D embedding from user's selfie"
+    )
+    event_embeddings: List[EventEmbeddingItem] = Field(
+        ..., description="List of embeddings for all event images"
+    )
+    threshold: float = Field(
+        0.4, ge=0, le=1, description="Similarity threshold (0-1)"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "selfie_embedding": [0.123, 0.456, -0.789],  # 512 floats in reality
+                "event_embeddings": [
+                    {"id": "image_id_1", "embedding": [0.100, 0.200, -0.300]},
+                    {"id": "image_id_2", "embedding": [0.150, 0.250, -0.350]},
+                ],
+                "threshold": 0.5
+            }
+        }
+
+
+class MatchResult(BaseModel):
+    """Single match result"""
+    id: str = Field(..., description="Image ID from MongoDB")
+    score: float = Field(..., description="Cosine similarity score (0-1)")
+
+
+class FindMatchesResponse(BaseModel):
+    """Response model for finding matches"""
+    success: bool = Field(True, description="Whether the operation was successful")
+    matches: List[MatchResult] = Field(
+        ..., description="List of matching images sorted by score (descending)"
+    )
+    match_count: int = Field(..., description="Number of matches found")
+    processing_time: Optional[float] = Field(
+        None, description="Time taken to compute similarities in milliseconds"
+    )
+    message: str = Field(..., description="Status message")
